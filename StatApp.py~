@@ -1,0 +1,23 @@
+#! /usr/bin/env python
+
+#Filename: StatApp.py
+
+import requests
+import json
+
+def main():
+    team_url = "http://stats.nba.com/stats/teamplayerdashboard?DateFrom=&DateTo=&GameSegment=&LastNGames=0&LeagueID=00&Location=&MeasureType=Base&Month=0&OpponentTeamID=0&Outcome=&PaceAdjust=N&PerMode=PerGame&Period=0&PlusMinus=N&Rank=N&Season=2015-16&SeasonSegment=&SeasonType=Regular+Season&TeamID=1610612739&VsConference=&VsDivision=" 
+
+    response = requests.get(team_url)
+    response.raise_for_status()
+    
+    data = json.loads(response.text)
+   
+    teamID = response.json()['resultSets'][0]['rowSet']
+    
+    #print teamID
+    print data['resultSets'][0]['headers']
+    print teamID[0][0]
+
+if __name__ == "__main__":
+    main()
