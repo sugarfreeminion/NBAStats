@@ -11,7 +11,7 @@ class Team:
         self.teamID = []
         self.wins = []
         self.losses = []
-        self.players = []
+        self.players = {}
 
     def SetTeamInfo(self,teamName, teamID, w, l):
         self.teamName = teamName
@@ -21,8 +21,7 @@ class Team:
 
     def AddPlayer(self,playerID, playerName):
         p = Player()
-        p.PlayerInfo(playerID,playerName)
-
-        self.players.append(p)
-
+        p.playerID = playerID
+        p.playerName = playerName
+        self.players[playerName] = p
 

@@ -2,6 +2,7 @@
 
 import sys
 from PyQt4 import QtGui
+from PyQt4.QtCore import *
 import csv
 import json
 import requests
@@ -32,11 +33,12 @@ class StatAppGUI(QtGui.QMainWindow):
         self.lossLbl = []
         self.cBoxPlayerLbl = []
         self.cBoxPlayers = []
+        self.cTable = []
 
         self.CreateGUI()
 
     def CreateGUI(self):
-        self.setGeometry(300,300,300,300)
+        self.setGeometry(300,300,900,450)
 
         self.setWindowTitle('Stats')
 
@@ -50,13 +52,15 @@ class StatAppGUI(QtGui.QMainWindow):
         create the combo box
         '''
         self.cBoxTeams = QtGui.QComboBox(self)
+        self.cBoxTeams.addItem("")
         for key,val in self.teams.items():
             #print key
             self.cBoxTeams.addItem(key)
 
         self.cBoxTeams.activated[str].connect(self.TeamComboBoxChange)
         self.cBoxTeams.move(110,25)
-    
+        self.cBoxTeams.resize(150,30)
+
         self.winLbl = QtGui.QLabel("Wins: ",self)
         self.winLbl.move(25,50)
 
@@ -70,30 +74,40 @@ class StatAppGUI(QtGui.QMainWindow):
         self.cBoxPlayers.activated[str].connect(self.PlayerChange)
         self.cBoxPlayers.move(110,100)
 
+        self.cTable = QtGui.QTableWidget(self)
+        self.cTable.move(25,150)
+        self.cTable.resize(850,200)
+        self.cTable.setRowCount(2)
+        self.cTable.setColumnCount(8)
+        self.cTable.setHorizontalHeaderLabels(QString("Player;Games Played;REB;AST;STL;BLK;PTS;Plus/Minus").split(";"))
+
         self.show()
 
+        self.cTable.show()
+
     def TeamComboBoxChange(self,text):
-        self.team = Team()
+        if text:
+            self.team = Team()
         
-        self.cBoxPlayers.clear()
+            self.cBoxPlayers.clear()
 
-        data = self.RetrieveTeamData(self.teams[str(text)])
+            data = self.RetrieveTeamData(self.teams[str(text)])
 
-        teamHeaders = data['resultSets'][0]['headers']
-        playerHeaders = data['resultSets'][1]['headers']
-        teamData = data['resultSets'][0]['rowSet']
-        playerData = data['resultSets'][1]['rowSet']
+            teamHeaders = data['resultSets'][0]['headers']
+            playerHeaders = data['resultSets'][1]['headers']
+            teamData = data['resultSets'][0]['rowSet']
+            playerData = data['resultSets'][1]['rowSet']
 
-        (teamWins, teamLosses) = self.ParseTeamData(teamHeaders,teamData)
-        
-        self.team.losses = teamLosses
-        self.team.teamName = str(text)
-        self.team.teamID = self.teams[str(text)]
+            (teamWins, teamLosses) = self.ParseTeamData(teamHeaders,teamData)
+            
+            self.team.losses = teamLosses
+            self.team.teamName = str(text)
+            self.team.teamID = self.teams[str(text)]
 
-        self.winLbl.setText(str(teamWins))
-        self.lossLbl.setText(str(teamLosses))
+            self.winLbl.setText(str(teamWins))
+            self.lossLbl.setText(str(teamLosses))
 
-        self.ParsePlayerData(playerHeaders,playerData)
+            self.ParsePlayerData(playerHeaders,playerData)
 
     def ParsePlayerData(self, playerHeaders, playerData):
         playerIDLocation = playerHeaders.index('PLAYER_ID')
@@ -124,5 +138,30 @@ class StatAppGUI(QtGui.QMainWindow):
 
         return data
 
+    def RetrievePlayerData(self, playerID):
+        playerURL = "http://stats.nba.com/stats/playerdashboardbygeneralsplits?DateFrom=&DateTo=&GameSegment=&LastNGames=0&LeagueID=00&Location=&MeasureType=Base&Month=0&OpponentTeamID=0&Outcome=&PORound=0&PaceAdjust=N&PerMode=PerGame&Period=0&PlayerID="+str(playerID)+"&PlusMinus=N&Rank=N&Season=2015-16&SeasonSegment=&SeasonType=Regular+Season&ShotClockRange=&VsConference=&VsDivision="
+
+        response = requests.get(playerURL)
+        response.raise_for_status()
+
+        data = json.loads(response.text)
+
+        return data
+
     def PlayerChange(self,text):
-        print "HELLO"
+        data = self.RetrievePlayerData(self.team.players[str(text)].playerID)
+        
+        p = self.team.players[str(text)]
+
+        p.SetPlayerInfo(data)
+
+        self.cTable.setItem(0,0, QtGui.QTableWidgetItem(p.playerName))
+        self.cTable.setItem(0,1, QtGui.QTableWidgetItem(str(p.gamesPlayed)))
+        self.cTable.setItem(0,2, QtGui.QTableWidgetItem(str(p.reb)))
+        self.cTable.setItem(0,3, QtGui.QTableWidgetItem(str(p.ast)))
+        self.cTable.setItem(0,4, QtGui.QTableWidgetItem(str(p.stl)))
+        self.cTable.setItem(0,5, QtGui.QTableWidgetItem(str(p.blk)))
+        self.cTable.setItem(0,6, QtGui.QTableWidgetItem(str(p.pts)))
+        self.cTable.setItem(0,7, QtGui.QTableWidgetItem(str(p.plusMinus)))
+
+    
